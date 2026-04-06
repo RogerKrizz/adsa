@@ -1,0 +1,112 @@
+class RBNode {
+    int data;
+    RBNode left, right, parent;
+    boolean color; // true = RED, false = BLACK
+
+    RBNode(int data) {
+        this.data = data;
+        color = true;
+    }
+}
+
+public class RedBlackTree {
+
+    private RBNode root;
+
+    private void rotateLeft(RBNode x) {
+        RBNode y = x.right;
+        x.right = y.left;
+        if (y.left != null) y.left.parent = x;
+
+        y.parent = x.parent;
+        if (x.parent == null) root = y;
+        else if (x == x.parent.left) x.parent.left = y;
+        else x.parent.right = y;
+
+        y.left = x;
+        x.parent = y;
+    }
+
+    private void rotateRight(RBNode y) {
+        RBNode x = y.left;
+        y.left = x.right;
+        if (x.right != null) x.right.parent = y;
+
+        x.parent = y.parent;
+        if (y.parent == null) root = x;
+        else if (y == y.parent.left) y.parent.left = x;
+        else y.parent.right = x;
+
+        x.right = y;
+        y.parent = x;
+    }
+
+    public void insert(int data) {
+        RBNode node = new RBNode(data);
+        root = bstInsert(root, node);
+        fixViolation(node);
+    }
+
+    private RBNode bstInsert(RBNode root, RBNode node) {
+        if (root == null) return node;
+
+        if (node.data < root.data) {
+            root.left = bstInsert(root.left, node);
+            root.left.parent = root;
+        } else {
+            root.right = bstInsert(root.right, node);
+            root.right.parent = root;
+        }
+        return root;
+    }
+
+    private void fixViolation(RBNode node) {
+        while (node != root && node.parent.color) {
+            RBNode parent = node.parent;
+            RBNode grandparent = parent.parent;
+
+            if (parent == grandparent.left) {
+                RBNode uncle = grandparent.right;
+
+                if (uncle != null && uncle.color) {
+                    parent.color = false;
+                    uncle.color = false;
+                    grandparent.color = true;
+                    node = grandparent;
+                } else {
+                    if (node == parent.right) {
+                        rotateLeft(parent);
+                        node = parent;
+                        parent = node.parent;
+                    }
+                    rotateRight(grandparent);
+                    boolean temp = parent.color;
+                    parent.color = grandparent.color;
+                    grandparent.color = temp;
+                    node = parent;
+                }
+            } else {
+                RBNode uncle = grandparent.left;
+
+                if (uncle != null && uncle.color) {
+                    parent.color = false;
+                    uncle.color = false;
+                    grandparent.color = true;
+                    node = grandparent;
+                } else {
+                    if (node == parent.left) {
+                        rotateRight(parent);
+                        node = parent;
+                        parent = node.parent;
+                    }
+                    rotateLeft(grandparent);
+                    boolean temp = parent.color;
+                    parent.color = grandparent.color;
+                    grandparent.color = temp;
+                    node = parent;
+                }
+            }
+        }
+        root.color = false;
+    }
+}
