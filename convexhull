@@ -1,0 +1,58 @@
+import java.util.*;
+
+class Point {
+    int x, y;
+    Point(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+public class ConvexHull {
+
+    static int orientation(Point a, Point b, Point c) {
+        int val = (b.y - a.y) * (c.x - b.x) -
+                  (b.x - a.x) * (c.y - b.y);
+        if (val == 0) return 0;
+        return (val > 0) ? 1 : 2;
+    }
+
+    static double dist(Point a, Point b) {
+        return Math.pow(a.x - b.x, 2) + Math.pow(a.y - b.y, 2);
+    }
+
+    public static List<Point> convexHull(Point[] points) {
+        int n = points.length;
+        if (n < 3) return new ArrayList<>();
+
+        Point pivot = points[0];
+        for (Point p : points)
+            if (p.y < pivot.y || (p.y == pivot.y && p.x < pivot.x))
+                pivot = p;
+
+        Point finalPivot = pivot;
+
+        Arrays.sort(points, (p1, p2) -> {
+            int o = orientation(finalPivot, p1, p2);
+            if (o == 0)
+                return Double.compare(dist(finalPivot, p1), dist(finalPivot, p2));
+            return (o == 2) ? -1 : 1;
+        });
+
+        Stack<Point> stack = new Stack<>();
+        stack.push(points[0]);
+        stack.push(points[1]);
+        stack.push(points[2]);
+
+        for (int i = 3; i < n; i++) {
+            while (stack.size() > 1 &&
+                   orientation(stack.get(stack.size()-2),
+                               stack.peek(), points[i]) != 2) {
+                stack.pop();
+            }
+            stack.push(points[i]);
+        }
+
+        return new ArrayList<>(stack);
+    }
+}
