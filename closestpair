@@ -1,0 +1,65 @@
+import java.util.*;
+
+class CPPoint {
+    int x, y;
+    CPPoint(int x, int y) {
+        this.x = x;
+        this.y = y;
+    }
+}
+
+public class ClosestPair {
+
+    static double dist(CPPoint a, CPPoint b) {
+        return Math.sqrt(Math.pow(a.x - b.x, 2) +
+                         Math.pow(a.y - b.y, 2));
+    }
+
+    static double bruteForce(CPPoint[] pts, int n) {
+        double min = Double.MAX_VALUE;
+        for (int i = 0; i < n; i++)
+            for (int j = i+1; j < n; j++)
+                min = Math.min(min, dist(pts[i], pts[j]));
+        return min;
+    }
+
+    static double stripClosest(List<CPPoint> strip, double d) {
+        double min = d;
+        strip.sort(Comparator.comparingInt(p -> p.y));
+
+        for (int i = 0; i < strip.size(); i++) {
+            for (int j = i+1; j < strip.size() &&
+                 (strip.get(j).y - strip.get(i).y) < min; j++) {
+                min = Math.min(min, dist(strip.get(i), strip.get(j)));
+            }
+        }
+        return min;
+    }
+
+    static double closestUtil(CPPoint[] pts, int n) {
+        if (n <= 3) return bruteForce(pts, n);
+
+        int mid = n / 2;
+        CPPoint midPoint = pts[mid];
+
+        CPPoint[] left = Arrays.copyOfRange(pts, 0, mid);
+        CPPoint[] right = Arrays.copyOfRange(pts, mid, n);
+
+        double dl = closestUtil(left, mid);
+        double dr = closestUtil(right, n - mid);
+
+        double d = Math.min(dl, dr);
+
+        List<CPPoint> strip = new ArrayList<>();
+        for (CPPoint p : pts)
+            if (Math.abs(p.x - midPoint.x) < d)
+                strip.add(p);
+
+        return Math.min(d, stripClosest(strip, d));
+    }
+
+    public static double closest(CPPoint[] pts) {
+        Arrays.sort(pts, Comparator.comparingInt(p -> p.x));
+        return closestUtil(pts, pts.length);
+    }
+}
