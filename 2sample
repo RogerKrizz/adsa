@@ -1,0 +1,27 @@
+import pandas as pd
+import numpy as np
+from scipy.stats import ttest_ind
+
+# Load dataset
+df = pd.read_csv("weather.csv")
+
+# Select two groups
+group1 = df[df["Condition"] == "Sunny"]["Data.Temperature.Avg Temp"].dropna()
+group2 = df[df["Condition"] == "Rain"]["Data.Temperature.Avg Temp"].dropna()
+
+# Sample statistics
+print("Group 1 Mean:", group1.mean())
+print("Group 2 Mean:", group2.mean())
+
+# Independent t-test
+t_stat, p_value = ttest_ind(group1, group2)
+
+print("\nt-statistic:", t_stat)
+print("p-value:", p_value)
+
+# Decision
+alpha = 0.05
+if p_value < alpha:
+    print("Reject Null Hypothesis (Means are different)")
+else:
+    print("Fail to Reject Null Hypothesis (Means are same)")
