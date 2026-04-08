@@ -1,0 +1,15 @@
+from scipy.stats import f_oneway
+
+g1 = df[df['Target_variable'] == 'A']['highly co related vaiable ']
+g2 = df[df['group'] == 'B']['value']
+g3 = df[df['group'] == 'C']['value']
+
+f_stat, p_val =f_oneway(g1, g2, g3)
+
+print(p_val)
+
+alpha = 0.05
+if p_value < alpha:
+    print("Reject Null Hypothesis (Means are different)")
+else:
+    print("Fail to Reject Null Hypothesis (Means are same)")
