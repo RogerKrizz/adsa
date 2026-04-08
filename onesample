@@ -1,0 +1,32 @@
+import pandas as pd
+import numpy as np
+from scipy import stats
+
+# Step 1: Load dataset
+df = pd.read_csv(r"C:\Users\thami\Downloads\weather (1).csv")
+
+# Step 2: Select column (example: temperature)
+data = df["Data.Temperature.Avg Temp"].dropna()
+
+# Step 3: Sample statistics
+mean = data.mean()
+std = data.std(ddof=1)
+n = len(data)
+
+print("Sample Mean:", mean)
+print("Standard Deviation:", std)
+print("Sample Size:", n)
+
+# Step 4: Hypothesis testing (One-sample t-test)
+popmean = 56   # assumed value
+t_stat, p_value = stats.ttest_1samp(data, popmean)
+
+print("\nt-statistic:", t_stat)
+print("p-value:", p_value)
+
+# Step 5: Decision
+alpha = 0.05
+if p_value < alpha:
+    print("Reject Null Hypothesis")
+else:
+    print("Fail to Reject Null Hypothesis")
