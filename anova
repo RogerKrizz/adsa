@@ -9,7 +9,7 @@ f_stat, p_val =f_oneway(g1, g2, g3)
 print(p_val)
 
 alpha = 0.05
-if p_value < alpha:
+if p_val < alpha:
     print("Reject Null Hypothesis (Means are different)")
 else:
     print("Fail to Reject Null Hypothesis (Means are same)")
