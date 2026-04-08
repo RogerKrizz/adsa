@@ -1,0 +1,79 @@
+import numpy as np;
+import pandas as pd;
+import matplotlib.pyplot as plt;
+import seaborn as sns;
+
+df = pd.read_csv('D9-titanic_dataset.csv')
+df.head()
+
+df.columns
+
+df.info()
+
+df.info()
+
+df.shape
+
+df.describe()
+
+df.isnull().sum()
+
+df['Age'] = df['Age'].fillna(df['Age'].mean())
+
+df.drop('Cabin',axis = 1,inplace = True)
+
+df['Sex'] = df['Sex'].fillna(df['Sex'].mode()[0])
+
+df['Embarked'] = df['Embarked'].fillna(df['Embarked'].mode()[0])
+
+df['Fare'] = df['Fare'].fillna(df['Fare'].median())
+
+df['Fare'] = df['Fare'].fillna(df['Fare'].median())
+
+df.isnull().sum()
+
+plt.boxplot(df['Age'])
+plt.show()
+
+plt.boxplot(df['Fare'])
+plt.show()
+
+
+#handling outlier in fare
+q1 = df['Fare'].quantile(0.25)
+q3 = df['Fare'].quantile(0.75)
+iqr = q3 - q1
+lower = q1 - 1.5 * iqr
+upper = q3 + 1.5 * iqr
+df['Fare'] = np.clip(df['Fare'],lower,upper)
+
+
+
+#remove unwanted columns
+df.drop('PassengerId',axis = 1, inplace = True)
+df.drop('Name',axis = 1, inplace = True)
+df.drop('Ticket',axis = 1, inplace = True)
+
+
+df.columns
+
+df = pd.get_dummies(df,columns = ['Sex','Embarked'])
+
+df.dtypes
+
+
+df.tail()
+
+df.drop(1308,inplace = True)
+
+
+matrix = df.corr()
+matrix
+
+
+sns.heatmap(matrix,annot = True)
+plt.show()
+
+
+df['column_name'].replace(calue_to_replace,  np.nan, inplace= 
+True)
