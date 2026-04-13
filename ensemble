@@ -1,0 +1,148 @@
+# ==========================================================
+# 1. IMPORT LIBRARIES
+# ==========================================================
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+
+# Models
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.svm import SVC
+
+# Ensemble methods
+from sklearn.ensemble import VotingClassifier, BaggingClassifier, AdaBoostClassifier
+
+# Preprocessing
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Evaluation
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+
+# ==========================================================
+# 2. LOAD DATASET
+# ==========================================================
+data = pd.read_csv('your_file.csv')
+
+print("\nFirst 5 rows:\n", data.head())
+print("\nDataset Info:\n")
+print(data.info())
+
+
+# ==========================================================
+# 3. DATA CLEANING
+# ==========================================================
+data = data.drop_duplicates()
+
+print("\nMissing Values:\n", data.isnull().sum())
+
+num_cols = data.select_dtypes(include=np.number).columns
+data[num_cols] = data[num_cols].fillna(data[num_cols].mean())
+
+
+# ==========================================================
+# 4. FEATURES & TARGET
+# ==========================================================
+X = data.iloc[:, :-1]
+y = data.iloc[:, -1]
+
+
+# ==========================================================
+# 5. TRAIN-TEST SPLIT
+# ==========================================================
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+
+# ==========================================================
+# 6. FEATURE SCALING
+# ==========================================================
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+
+# ==========================================================
+# 7. BASE MODELS
+# ==========================================================
+model1 = LogisticRegression(max_iter=1000)
+model2 = DecisionTreeClassifier()
+model3 = SVC(probability=True)
+
+
+# ==========================================================
+# 8. VOTING ENSEMBLE
+# ==========================================================
+voting_model = VotingClassifier(
+    estimators=[
+        ('lr', model1),
+        ('dt', model2),
+        ('svm', model3)
+    ],
+    voting='soft'   # soft voting uses probabilities
+)
+
+voting_model.fit(X_train, y_train)
+
+y_pred_vote = voting_model.predict(X_test)
+
+
+# ==========================================================
+# 9. BAGGING
+# ==========================================================
+bagging_model = BaggingClassifier(
+    estimator=DecisionTreeClassifier(),
+    n_estimators=50,
+    random_state=42
+)
+
+bagging_model.fit(X_train, y_train)
+
+y_pred_bag = bagging_model.predict(X_test)
+
+
+# ==========================================================
+# 10. BOOSTING (AdaBoost)
+# ==========================================================
+boost_model = AdaBoostClassifier(
+    n_estimators=50,
+    random_state=42
+)
+
+boost_model.fit(X_train, y_train)
+
+y_pred_boost = boost_model.predict(X_test)
+
+
+# ==========================================================
+# 11. EVALUATION
+# ==========================================================
+print("\n--- Voting Classifier ---")
+print("Accuracy:", accuracy_score(y_test, y_pred_vote))
+
+print("\n--- Bagging ---")
+print("Accuracy:", accuracy_score(y_test, y_pred_bag))
+
+print("\n--- Boosting ---")
+print("Accuracy:", accuracy_score(y_test, y_pred_boost))
+
+
+# ==========================================================
+# 12. CONFUSION MATRIX (example: voting)
+# ==========================================================
+print("\nConfusion Matrix (Voting):\n", confusion_matrix(y_test, y_pred_vote))
+print("\nClassification Report:\n", classification_report(y_test, y_pred_vote))
+
+
+# ==========================================================
+# 13. PREDICT NEW DATA
+# ==========================================================
+# new_data = np.array([[val1, val2, ...]])
+# new_data_scaled = scaler.transform(new_data)
+# prediction = voting_model.predict(new_data_scaled)
+
+# print("Predicted Class:", prediction)
