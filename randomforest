@@ -1,0 +1,124 @@
+# ==========================================================
+# 1. IMPORT LIBRARIES
+# ==========================================================
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Model
+from sklearn.ensemble import RandomForestClassifier
+
+# Preprocessing
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+
+# Evaluation
+from sklearn.metrics import accuracy_score, confusion_matrix, classification_report
+
+
+# ==========================================================
+# 2. LOAD DATASET
+# ==========================================================
+data = pd.read_csv('your_file.csv')
+
+print("\nFirst 5 rows:\n", data.head())
+print("\nDataset Info:\n")
+print(data.info())
+print("\nSummary:\n", data.describe())
+
+
+# ==========================================================
+# 3. REMOVE DUPLICATES
+# ==========================================================
+data = data.drop_duplicates()
+
+
+# ==========================================================
+# 4. HANDLE MISSING VALUES
+# ==========================================================
+print("\nMissing Values:\n", data.isnull().sum())
+
+num_cols = data.select_dtypes(include=np.number).columns
+
+data[num_cols] = data[num_cols].fillna(data[num_cols].mean())
+
+
+# ==========================================================
+# 5. SEPARATE FEATURES & TARGET
+# ==========================================================
+# Assume last column is target (CHANGE if needed)
+
+X = data.iloc[:, :-1]
+y = data.iloc[:, -1]
+
+
+# ==========================================================
+# 6. TRAIN-TEST SPLIT
+# ==========================================================
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
+
+
+# ==========================================================
+# 7. FEATURE SCALING (OPTIONAL for RF)
+# ==========================================================
+# Random Forest doesn't strictly need scaling,
+# but we include for consistency
+
+scaler = StandardScaler()
+
+X_train = scaler.fit_transform(X_train)
+X_test = scaler.transform(X_test)
+
+
+# ==========================================================
+# 8. BUILD RANDOM FOREST MODEL
+# ==========================================================
+model = RandomForestClassifier(
+    n_estimators=100,
+    max_depth=None,
+    random_state=42
+)
+
+model.fit(X_train, y_train)
+
+
+# ==========================================================
+# 9. PREDICTION
+# ==========================================================
+y_pred = model.predict(X_test)
+
+
+# ==========================================================
+# 10. EVALUATION
+# ==========================================================
+print("\nAccuracy:", accuracy_score(y_test, y_pred))
+
+print("\nConfusion Matrix:\n", confusion_matrix(y_test, y_pred))
+
+print("\nClassification Report:\n", classification_report(y_test, y_pred))
+
+
+# ==========================================================
+# 11. FEATURE IMPORTANCE
+# ==========================================================
+importance = model.feature_importances_
+
+feature_names = data.columns[:-1]
+
+plt.barh(feature_names, importance)
+plt.xlabel("Importance")
+plt.title("Feature Importance")
+plt.show()
+
+
+# ==========================================================
+# 12. PREDICT NEW DATA
+# ==========================================================
+# new_data = np.array([[val1, val2, ...]])
+# new_data_scaled = scaler.transform(new_data)
+# prediction = model.predict(new_data_scaled)
+
+# print("Predicted Class:", prediction)
