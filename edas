@@ -1,0 +1,55 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+from sklearn.preprocessing import LabelEncoder, StandardScaler
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LinearRegression, LogisticRegression
+from sklearn.tree import DecisionTreeClassifier, plot_tree
+from sklearn.naive_bayes import GaussianNB
+from sklearn.ensemble import RandomForestClassifier, AdaBoostClassifier, GradientBoostingClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.cluster import KMeans
+from sklearn.metrics import mean_absolute_error, mean_squared_error, accuracy_score, classification_report, confusion_matrix, r2_score
+from sklearn.decomposition import PCA
+
+import warnings
+warnings.filterwarnings("ignore")
+
+df = pd.read_csv(r"D:\Nithilan\SEM 4\PRML\Datasets\CVD_cleaned.csv")
+df.head()
+
+df.info()
+
+df.shape
+
+df.describe()
+
+df.isnull().sum()
+
+num_col = df.select_dtypes(include = "number")
+for i in num_col:
+    df[i] = df[i].fillna(df[i].median())
+    
+for i in num_col:
+    plt.boxplot(df[i])
+    plt.title(i)
+    plt.show()
+
+for i in num_col:
+    sns.histplot(df[i], kde = True, bins = 20)
+    plt.show()
+
+le = LabelEncoder()
+obj_col = df.select_dtypes(include = "object")
+df_enc = df.copy()
+for i in obj_col.columns:
+    df_enc[i] = le.fit_transform(df_enc[i])
+
+corr = df_enc.corr()
+plt.figure(figsize=(10, 12))
+sns.heatmap(corr, annot = True, cmap = "coolwarm", fmt = ".2f")
+plt.show()
+target_corr = corr["Heart_Disease"].sort_values(ascending = False)
+print(target_corr)
