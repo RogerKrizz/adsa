@@ -1,0 +1,25 @@
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import GridSearchCV
+
+# Model
+dt = DecisionTreeClassifier()
+
+# Parameters
+param_grid_dt = {
+    'max_depth': [3, 5, 10, None],
+    'min_samples_split': [2, 5, 10],
+    'criterion': ['gini', 'entropy']
+}
+
+# Grid Search
+grid_dt = GridSearchCV(dt, param_grid_dt, cv=5)
+
+# Train
+grid_dt.fit(X_train, y_train)
+
+# Results
+print("Best Params (DT):", grid_dt.best_params_)
+print("Best Score (DT):", grid_dt.best_score_)
+
+# Best model
+best_dt = grid_dt.best_estimator_
