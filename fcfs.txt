@@ -1,0 +1,226 @@
+#include <stdio.h>
+#include <string.h>
+
+#define MAX 100
+
+struct Process
+{
+    int pid, at, bt;
+    int ct, tat, wt;
+};
+
+struct Queue
+{
+    int items[MAX];
+    int front, rear;
+};
+
+void initialize(struct Queue *q)
+{
+    q->front = 0;
+    q->rear = -1;
+}
+
+int isEmpty(struct Queue *q)
+{
+    return q->front > q->rear;
+}
+
+void enqueue(struct Queue *q, int x)
+{
+    q->items[++q->rear] = x;
+}
+
+int dequeue(struct Queue *q)
+{
+    return q->items[q->front++];
+}
+
+int main()
+{
+    int n;
+
+    printf("Enter number of processes: ");
+    scanf("%d", &n);
+
+    struct Process p[n];
+    struct Queue q;
+
+    initialize(&q);
+
+    // Gantt chart arrays
+    int ganttPid[MAX];
+    int ganttStart[MAX];
+    int ganttEnd[MAX];
+    int ganttCount = 0;
+
+    // Input
+    for (int i = 0; i < n; i++)
+    {
+        p[i].pid = i + 1;
+        printf("Enter AT and BT for P%d: ", i + 1);
+        scanf("%d %d", &p[i].at, &p[i].bt);
+    }
+
+    // Sort processes according to Arrival Time (and by PID if AT is same)
+    for (int i = 0; i < n - 1; i++)
+    {
+        for (int j = i + 1; j < n; j++)
+        {
+            if (p[i].at > p[j].at || (p[i].at == p[j].at && p[i].pid > p[j].pid))
+            {
+                struct Process temp = p[i];
+                p[i] = p[j];
+                p[j] = temp;
+            }
+        }
+    }
+
+    int time = 0;
+    int next = 0;
+    int completed = 0;
+
+    while (completed < n)
+    {
+        // Add all processes that have arrived to the queue
+        while (next < n && p[next].at <= time)
+        {
+            enqueue(&q, next);
+            next++;
+        }
+
+        // If queue is empty, the CPU is idle until the next process arrives
+        if (isEmpty(&q))
+        {
+            ganttPid[ganttCount] = 0; // 0 represents IDLE
+            ganttStart[ganttCount] = time;
+            time = p[next].at;
+            ganttEnd[ganttCount] = time;
+            ganttCount++;
+            continue;
+        }
+
+        // Get next process from queue
+        int index = dequeue(&q);
+
+        // Store Gantt chart start time
+        ganttPid[ganttCount] = p[index].pid;
+        ganttStart[ganttCount] = time;
+
+        // Execute process
+        time += p[index].bt;
+
+        // Store Gantt chart end time
+        ganttEnd[ganttCount] = time;
+        ganttCount++;
+
+        // Calculate CT, TAT, WT
+        p[index].ct = time;
+        p[index].tat = p[index].ct - p[index].at;
+        p[index].wt = p[index].tat - p[index].bt;
+
+        completed++;
+    }
+
+    // Sort processes back by PID to print the final table neatly
+    for (int i = 0; i < n - 1; i++)
+    {
+        for (int j = i + 1; j < n; j++)
+        {
+            if (p[i].pid > p[j].pid)
+            {
+                struct Process temp = p[i];
+                p[i] = p[j];
+                p[j] = temp;
+            }
+        }
+    }
+
+    // Process table and Averages calculation
+    float total_tat = 0;
+    float total_wt = 0;
+
+    printf("\nPID\tAT\tBT\tCT\tTAT\tWT\n");
+    for (int i = 0; i < n; i++)
+    {
+        printf("P%d\t%d\t%d\t%d\t%d\t%d\n",
+               p[i].pid, p[i].at, p[i].bt, p[i].ct, p[i].tat, p[i].wt);
+        
+        total_tat += p[i].tat;
+        total_wt += p[i].wt;
+    }
+
+    printf("\nAverage Turnaround Time: %.2f\n", total_tat / n);
+    printf("Average Waiting Time: %.2f\n", total_wt / n);
+
+    // ==========================================
+    // DYNAMIC PROPORTIONAL GANTT CHART
+    // ==========================================
+    printf("\n\nGANTT CHART\n\n");
+
+    int widths[MAX];
+
+    // 1. Calculate proportional widths based on duration
+    for (int i = 0; i < ganttCount; i++) {
+        int duration = ganttEnd[i] - ganttStart[i];
+        widths[i] = duration * 2; // Scale factor: 1 unit of time = 2 spaces
+        if (widths[i] < 6) {
+            widths[i] = 6; // Minimum width so text like "IDLE" doesn't break the UI
+        }
+    }
+
+    // 2. Print Top Border
+    printf(" ");
+    for (int i = 0; i < ganttCount; i++) {
+        for (int j = 0; j < widths[i]; j++) printf("-");
+        printf(" ");
+    }
+    printf("\n");
+
+    // 3. Print Middle (Process IDs perfectly centered)
+    printf("|");
+    for (int i = 0; i < ganttCount; i++) {
+        char label[10];
+        if (ganttPid[i] == 0) sprintf(label, "IDLE");
+        else sprintf(label, "P%d", ganttPid[i]);
+        
+        int pad_total = widths[i] - strlen(label);
+        int pad_left = pad_total / 2;
+        int pad_right = pad_total - pad_left;
+        
+        for(int j = 0; j < pad_left; j++) printf(" ");
+        printf("%s", label);
+        for(int j = 0; j < pad_right; j++) printf(" ");
+        printf("|");
+    }
+    printf("\n");
+
+    // 4. Print Bottom Border
+    printf(" ");
+    for (int i = 0; i < ganttCount; i++) {
+        for (int j = 0; j < widths[i]; j++) printf("-");
+        printf(" ");
+    }
+    printf("\n");
+
+    // 5. Print Timestamps perfectly aligned under the pipes '|'
+    int chars_printed = printf("%d", ganttStart[0]);
+    int target_pos = 0;
+    
+    for (int i = 0; i < ganttCount; i++) {
+        target_pos += widths[i] + 1; // +1 to account for the pipe '|'
+        
+        // Print spaces until we reach exactly under the next pipe
+        while (chars_printed < target_pos) {
+            printf(" ");
+            chars_printed++;
+        }
+        
+        // Print the next timestamp and add its length to chars_printed
+        int num_len = printf("%d", ganttEnd[i]);
+        chars_printed += num_len;
+    }
+    printf("\n\n");
+
+    return 0;
+}
