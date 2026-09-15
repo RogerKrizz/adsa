@@ -1,0 +1,105 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <sys/sem.h>
+#include <sys/wait.h>
+
+#define SIZE 5
+
+union semun {
+    int val;
+};
+
+struct shared {
+    int buffer[SIZE];
+    int in, out;
+};
+
+void wait_sem(int semid, int n)
+{
+    struct sembuf op = {n, -1, 0};
+    semop(semid, &op, 1);
+}
+
+void signal_sem(int semid, int n)
+{
+    struct sembuf op = {n, 1, 0};
+    semop(semid, &op, 1);
+}
+
+int main()
+{
+    int shmid, semid;
+    struct shared *s;
+    union semun arg;
+
+    /* Create shared memory */
+    shmid = shmget(IPC_PRIVATE, sizeof(struct shared), IPC_CREAT | 0666);
+    s = shmat(shmid, NULL, 0);
+
+    s->in = 0;
+    s->out = 0;
+
+    /* Create 3 semaphores */
+    semid = semget(IPC_PRIVATE, 3, IPC_CREAT | 0666);
+
+    /* 0 = empty, 1 = full, 2 = mutex */
+    arg.val = SIZE;
+    semctl(semid, 0, SETVAL, arg);
+
+    arg.val = 0;
+    semctl(semid, 1, SETVAL, arg);
+
+    arg.val = 1;
+    semctl(semid, 2, SETVAL, arg);
+
+    if (fork() == 0)
+    {
+        /* CONSUMER */
+        for (int i = 1; i <= 10; i++)
+        {
+            wait_sem(semid, 1);   // wait for full
+            wait_sem(semid, 2);   // lock
+
+            int item = s->buffer[s->out];
+            s->out = (s->out + 1) % SIZE;
+
+            printf("Consumer consumed: %d\n", item);
+
+            signal_sem(semid, 2); // unlock
+            signal_sem(semid, 0); // empty++
+            sleep(1);
+        }
+
+        shmdt(s);
+        exit(0);
+    }
+    else
+    {
+        /* PRODUCER */
+        for (int i = 1; i <= 10; i++)
+        {
+            wait_sem(semid, 0);   // wait for empty
+            wait_sem(semid, 2);   // lock
+
+            s->buffer[s->in] = i;
+            s->in = (s->in + 1) % SIZE;
+
+            printf("Producer produced: %d\n", i);
+
+            signal_sem(semid, 2); // unlock
+            signal_sem(semid, 1); // full++
+            sleep(1);
+        }
+
+        wait(NULL);
+
+        shmdt(s);
+        shmctl(shmid, IPC_RMID, NULL);
+        semctl(semid, 0, IPC_RMID);
+    }
+
+    return 0;
+}
