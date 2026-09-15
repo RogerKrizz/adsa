@@ -1,0 +1,79 @@
+#include <stdio.h>
+#include <unistd.h>
+#include <string.h>
+#include <sys/types.h>
+
+int main()
+{
+    int clientToServer[2];
+    int serverToClient[2];
+
+    pid_t pid;
+
+    char clientMessage[] = "Hello Server";
+    char serverMessage[] = "Hello Client";
+
+    char buffer[100];
+
+    // Create two pipes
+    pipe(clientToServer);
+    pipe(serverToClient);
+
+    // Create child process
+    pid = fork();
+
+    if (pid < 0)
+    {
+        printf("Fork failed\n");
+    }
+
+    else if (pid > 0)
+    {
+        // CLIENT
+
+        // Client writes to server
+        close(clientToServer[0]);
+
+        // Client reads from server
+        close(serverToClient[1]);
+
+        write(clientToServer[1],
+              clientMessage,
+              strlen(clientMessage) + 1);
+
+        read(serverToClient[0],
+             buffer,
+             sizeof(buffer));
+
+        printf("Client received: %s\n", buffer);
+
+        close(clientToServer[1]);
+        close(serverToClient[0]);
+    }
+
+    else
+    {
+        // SERVER
+
+        // Server reads from client
+        close(clientToServer[1]);
+
+        // Server writes to client
+        close(serverToClient[0]);
+
+        read(clientToServer[0],
+             buffer,
+             sizeof(buffer));
+
+        printf("Server received: %s\n", buffer);
+
+        write(serverToClient[1],
+              serverMessage,
+              strlen(serverMessage) + 1);
+
+        close(clientToServer[0]);
+        close(serverToClient[1]);
+    }
+
+    return 0;
+}
