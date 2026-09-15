@@ -1,0 +1,98 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <sys/ipc.h>
+#include <sys/shm.h>
+#include <unistd.h>
+#include <sys/wait.h>
+
+struct shared_data
+{
+    char message[100];
+    int status;
+};
+
+int main()
+{
+    int shmid;
+    struct shared_data *shm;
+
+    // Create shared memory
+    shmid = shmget(IPC_PRIVATE, sizeof(struct shared_data),
+                   IPC_CREAT | 0666);
+
+    if (shmid == -1)
+    {
+        perror("shmget failed");
+        return 1;
+    }
+
+    // Attach shared memory
+    shm = (struct shared_data *)shmat(shmid, NULL, 0);
+
+    if (shm == (void *)-1)
+    {
+        perror("shmat failed");
+        return 1;
+    }
+
+    // 0 means no message yet
+    shm->status = 0;
+
+    if (fork() == 0)
+    {
+        // SERVER
+
+        // Wait until client sends message
+        while (shm->status != 1)
+            sleep(1);
+
+        printf("\nSERVER\n");
+        printf("Server PID: %d\n", getpid());
+
+        printf("Server received: %s\n", shm->message);
+
+        // Send response
+        strcpy(shm->message, "Message received successfully");
+
+        // 2 means response is ready
+        shm->status = 2;
+
+        printf("Server sent response.\n");
+
+        shmdt(shm);
+        exit(0);
+    }
+    else
+    {
+        // CLIENT
+
+        printf("\nCLIENT\n");
+        printf("Client PID: %d\n", getpid());
+
+        printf("Enter message: ");
+        fgets(shm->message, sizeof(shm->message), stdin);
+
+        // Tell server message is ready
+        shm->status = 1;
+
+        printf("Client sent: %s\n", shm->message);
+
+        // Wait for server response
+        while (shm->status != 2)
+            sleep(1);
+
+        printf("Client received: %s\n", shm->message);
+
+        // Wait for server to finish
+        wait(NULL);
+
+        // Detach and remove shared memory
+        shmdt(shm);
+        shmctl(shmid, IPC_RMID, NULL);
+
+        printf("Shared memory removed.\n");
+    }
+
+    return 0;
+}
