@@ -1,0 +1,108 @@
+# 1. Import libraries
+import numpy as np
+import matplotlib.pyplot as plt
+
+# 2. Define maze and parameters
+maze = [
+    "S.#.....",
+    ".##.###.",
+    "....#...",
+    ".####.#.",
+    "......#.",
+    ".####.#G",
+    "....#...",
+    "###...#."
+]
+
+rows, cols = 8, 8
+start, goal = (0, 0), (5, 7)
+moves = [(-1, 0), (1, 0), (0, -1), (0, 1)]
+
+Q = np.zeros((rows, cols, 4))
+
+alpha = 0.1
+gamma = 0.95
+epsilon = 1.0
+
+# 3. Train using Q-learning
+for i in range(800):
+    state = start
+
+    for j in range(200):
+
+        # Choose action
+        if np.random.rand() < epsilon:
+            action = np.random.randint(4)
+        else:
+            action = np.argmax(Q[state])
+
+        # Find next position
+        r = state[0] + moves[action][0]
+        c = state[1] + moves[action][1]
+
+        # Reward
+        if (r < 0 or r >= rows or c < 0 or c >= cols or maze[r][c] == '#'):
+            next_state = state
+            reward = -5
+            done = False
+
+        elif (r, c) == goal:
+            next_state = (r, c)
+            reward = 100
+            done = True
+
+        else:
+            next_state = (r, c)
+            reward = -1
+            done = False
+
+        # Update Q-value
+        Q[state][action] += alpha * (
+            reward + gamma * np.max(Q[next_state]) - Q[state][action]
+        )
+
+        state = next_state
+
+        if done:
+            break
+
+    epsilon = max(0.01, epsilon * 0.995)
+
+print("Training completed!")
+
+# 4. Find the learned path
+state = start
+path = [state]
+
+for i in range(rows * cols):
+    action = np.argmax(Q[state])
+    r = state[0] + moves[action][0]
+    c = state[1] + moves[action][1]
+
+    if (r < 0 or r >= rows or c < 0 or c >= cols or maze[r][c] == '#'):
+        break
+
+    state = (r, c)
+    path.append(state)
+
+    if state == goal:
+        break
+
+print("Goal reached:", state == goal)
+print("Path:", path)
+print("Path length:", len(path) - 1)
+
+# 5. Plot maze and path
+img = np.zeros((rows, cols))
+
+for r in range(rows):
+    for c in range(cols):
+        if maze[r][c] == '#':
+            img[r, c] = 1
+
+plt.imshow(img, cmap="gray")
+
+y, x = zip(*path)
+plt.plot(x, y, "o-", color="orange")
+plt.title("Q-Learning Maze")
+plt.show()
