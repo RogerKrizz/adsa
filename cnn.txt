@@ -1,0 +1,94 @@
+
+# 1. Import libraries
+import numpy as np
+import matplotlib.pyplot as plt
+from tensorflow.keras.datasets import fashion_mnist
+from tensorflow.keras.preprocessing.text import Tokenizer
+from tensorflow.keras.preprocessing.sequence import pad_sequences
+from tensorflow.keras.models import Model
+from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, GlobalAveragePooling2D, Dense, Embedding, LSTM, Add
+
+# 2. Load and preprocess images
+(x_train, y_train), (x_test, y_test) = fashion_mnist.load_data()
+
+x_train = x_train[:1500].reshape(-1, 28, 28, 1) / 255.0
+x_test = x_test[:1500].astype("float32").reshape(-1, 28, 28, 1) / 255.0
+
+names = ["t-shirt", "trouser", "pullover", "dress", "coat",
+         "sandal", "shirt", "sneaker", "bag", "ankle boot"]
+
+# 3. Create captions
+captions = ["startseq a photo of a " + names[y] + " endseq" for y in y_train[:1500]]
+
+tokenizer = Tokenizer()
+tokenizer.fit_on_texts(captions)
+
+vocab_size = len(tokenizer.word_index) + 1
+max_len = max(len(c.split()) for c in captions)
+seqs = tokenizer.texts_to_sequences(captions)
+
+# 4. Create image, input-sequence and next-word pairs
+X_img, X_seq, Y = [], [], []
+
+for img, seq in zip(x_train, seqs):
+    for i in range(1, len(seq)):
+        X_img.append(img)
+        X_seq.append(seq[:i])
+        Y.append(seq[i])
+
+X_img = np.array(X_img)
+X_seq = pad_sequences(X_seq, maxlen=max_len, padding="post")
+Y = np.array(Y)
+
+# 5. CNN for image features
+img_input = Input(shape=(28, 28, 1))
+a = Conv2D(32, 3, activation="relu", padding="same")(img_input)
+a = MaxPooling2D()(a)
+a = Conv2D(64, 3, activation="relu", padding="same")(a)
+a = MaxPooling2D()(a)
+a = GlobalAveragePooling2D()(a)
+a = Dense(128, activation="relu")(a)
+
+# 6. LSTM for caption features
+text_input = Input(shape=(max_len,))
+b = Embedding(vocab_size, 128, mask_zero=True)(text_input)
+b = LSTM(128)(b)
+
+# 7. Combine both features and predict next word
+c = Add()([a, b])
+c = Dense(128, activation="relu")(c)
+output = Dense(vocab_size, activation="softmax")(c)
+
+model = Model([img_input, text_input], output)
+model.compile(optimizer="adam",
+              loss="sparse_categorical_crossentropy",
+              metrics=["accuracy"])
+
+# 8. Train the model
+model.fit([X_img, X_seq], Y, epochs=5, batch_size=64)
+
+# 9. Generate caption
+index_word = {v: k for k, v in tokenizer.word_index.items()}
+
+def generate_caption(img):
+    text = "startseq"
+
+    for i in range(max_len):
+        seq = tokenizer.texts_to_sequences([text])[0]
+        seq = pad_sequences([seq], maxlen=max_len, padding="post")
+
+        pred = model.predict([img.reshape(1, 28, 28, 1), seq], verbose=0)
+        word = index_word.get(int(np.argmax(pred)), "")
+
+        if word in ("", "endseq"):
+            break
+
+        text += " " + word
+
+    return text.replace("startseq", "").strip()
+
+# 10. Display result
+print("Actual class:", names[int(y_test[0])])
+print("Generated caption:", generate_caption(x_test[0]))
+plt.imshow(x_test[0].squeeze(), cmap="gray")
+plt.show()
